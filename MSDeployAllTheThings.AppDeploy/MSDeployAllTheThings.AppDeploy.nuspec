@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>MSDeployAllTheThings.AppDeploy</id>
+    <version>1.2.5</version>
+    <authors>Robert Schiefer Jr.</authors>
+    <owners>Robert Schiefer Jr.</owners>
+    <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Deploys application to target server using MSDeploy</description>
+    <releaseNotes>Fixed bug which caused issues in the pre/post sync bat files.</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>deploy automation msdeploy webdeploy application windows_service scheduled_task</tags>
+    <dependencies>
+      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1.4" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="**" target="" />
+  </files>
+</package>

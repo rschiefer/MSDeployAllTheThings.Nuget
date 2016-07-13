@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>MSDeployAllTheThings.WebDeployPlus</id>
+    <version>1.1.6</version>
+    <authors>Robert Schiefer Jr.</authors>
+    <owners>Robert Schiefer Jr.</owners>
+    <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Adds clustered deployment to WebDeploy.</description>
+    <releaseNotes>Removed version for PublishingPipeline.</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>deploy automation msdeploy webdeploy web</tags>
+    <dependencies>
+      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1.4" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="**\*.*" target="" />
+  </files>
+</package>

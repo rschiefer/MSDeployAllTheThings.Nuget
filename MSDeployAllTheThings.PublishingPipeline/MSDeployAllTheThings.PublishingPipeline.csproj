@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{3D9AF5AC-D36D-41FD-8DE9-3F7758DE0F5D}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="MSDeployAllTheThings.PublishingPipeline.nuspec" />
+    <None Include="nuget\tools\PublishingPipelineCore.targets" />
+    <None Include="nuget\tools\SlowCheetah.Transforms.targets" />
+    <None Include="nuget\tools\SlowCheetah.Tasks.dll" />
+  </ItemGroup>
+  <Import Project="..\_build\BuildNugetPackage.targets" />
+</Project>

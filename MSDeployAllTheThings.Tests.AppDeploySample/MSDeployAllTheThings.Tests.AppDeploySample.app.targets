@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--Use the following ItemGroup to set the files to be deployed.-->
+  <!--<ItemGroup>
+    <FilesToPackage Include="FilesToDeploy\**\*" />
+  </ItemGroup>-->
+  <PropertyGroup>    
+    <!-- Read the readme.txt file in the AppDeploy package folder (typically at "..\packages\AppDeploy[version]\") for help using app deploy. -->
+    <!--<BatchCommandVariables>var1=value1;var2=value2</BatchCommandVariables>-->
+    <!--<AppTypeFolder>[Services OR Tasks]</AppTypeFolder>-->
+  </PropertyGroup>
+</Project>

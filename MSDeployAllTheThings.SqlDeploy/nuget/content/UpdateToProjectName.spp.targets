@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- SqlPublishingPipeline - SqlDeploy: Set the scripts you would like to deploy along with the target databases below.  -->
+  
+  <!--   ***   SAMPLE DATA   ***  
+    <ItemGroup>
+      <DbDeployments Include="[ConnectionNameFromConfig]" 
+        <Scripts>[ScriptsToDeploy]</Scripts>
+        <DatabaseProject>[DatabaseProjectName]</DatabaseProject>
+        <GeneratedScriptPath>[PathToPlaceGeneratedDatabaseProjectScript]</GeneratedScriptPath>
+        <CommandTimeout>[Default200ms]</CommandTimeout>
+        <UseTransaction>[DefaultTrue]</UseTransaction>
+      </DbDeployments>
+      <DbDeployments Include="AccessNowDb">  
+        <Scripts>AccessNow/**/*.sql</Scripts>
+        <DatabaseProject>AccessNow.Db</DatabaseProject>
+        <GeneratedScriptPath>AccessNow\1-Schema\</GeneratedScriptPath>
+        <CommandTimeout>200</CommandTimeout>
+        <UseTransaction>true</UseTransaction>
+      </DbDeployments>
+      <DbDeployments Include="AccessNowDb">  
+        <Scripts>AccessNow/**/*.sql</Scripts>
+      </DbDeployments>
+    </ItemGroup>
+ -->
+</Project>

@@ -1,0 +1,207 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <UsingTask TaskName="MSDeploy" AssemblyFile="C:\Program Files (x86)\MSBuild\Microsoft\VisualStudio\v$(VisualStudioVersion)\Web\Microsoft.Web.Publishing.Tasks.dll"/>
+  <Import Project="SlowCheetah.Transforms.targets"/>
+
+
+  <!--Define parameter metadata structure-->
+  <ItemDefinitionGroup>
+    <ParameterDeclarations>
+      <Kind></Kind>
+      <Scope></Scope>
+      <Match></Match>
+      <Description></Description>
+      <DefaultValue></DefaultValue>
+      <Tags></Tags>
+    </ParameterDeclarations>
+    <DeployTypes>
+      <DeployPackageName>$(AppName).%(Identity).package.zip</DeployPackageName>
+      <DeployCommandFilenameOnly>$(AppName).%(Identity).cmd</DeployCommandFilenameOnly>
+      <DeployFolder>$(OutDir)%(Identity)ment\</DeployFolder>
+      <DeployCommandFilename>%(DeployFolder)%(DeployCommandFilenameOnly)</DeployCommandFilename>
+      <DeployPackagePath>%(DeployFolder)%(DeployPackageName)</DeployPackagePath>
+    </DeployTypes>
+  </ItemDefinitionGroup>
+
+  <PropertyGroup>
+    <AppName Condition=" '$(AppName)'=='' ">$(MSBuildProjectName)</AppName>
+    <DestinationFilePath Condition=" '$(DestinationFilePath)'==''">d$\Program Files\EBSCO\$(AppTypeFolder)\$(AppName)</DestinationFilePath>
+    <ParametersFile>$(MSBuildProjectDirectory)\parameters.xml</ParametersFile>
+    <ImportParametersFilesOverride Condition="'$(ImportParametersFilesOverride)'==''">false</ImportParametersFilesOverride>
+    <ImportParametersFiles>$(ImportParametersFilesOverride)</ImportParametersFiles>
+    <CurrentSetParameterFile>$(MSBuildProjectDirectory)\SetParameters.$(Configuration).xml</CurrentSetParameterFile>
+    <MSDeployPath Condition="'$(MSDeployPath)'==''">C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe</MSDeployPath>
+    <MSBuildTasksAssembly>Microsoft.Build.Tasks.v$(MSBuildToolsVersion).dll</MSBuildTasksAssembly>
+    <MSBuildTasksAssembly Condition="'$(MSBuildToolsVersion)'=='14.0'">Microsoft.Build.Tasks.Core.dll</MSBuildTasksAssembly>
+  </PropertyGroup>
+
+
+
+  <UsingTask
+    TaskName="XmlToItemGroup"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\$(MSBuildTasksAssembly)" >
+    <ParameterGroup>
+      <XmlContent ParameterType="System.String" Required="false" />
+      <XmlInputPath ParameterType="System.String" Required="false" />
+      <ItemQuery ParameterType="System.String" Required="true"  />
+      <ItemIdentityQuery ParameterType="System.String" Required="true" />
+      <MetadataMap ParameterType="System.String" Required="true"  />
+
+      <Result ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.Xml"/>
+      <Using Namespace="System"/>
+      <Using Namespace="System.Linq"/>
+      <Using Namespace="System.IO"/>
+      <Using Namespace="System.Xml"/>
+      <Using Namespace="System.Xml.XPath"/>
+      <Using Namespace="System.Collections.Generic"/>
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+XmlReader xmlReader = null;
+if (string.IsNullOrEmpty(XmlContent) == false)
+{
+  xmlReader = XmlReader.Create(XmlContent);
+} else {
+  xmlReader = XmlReader.Create(XmlInputPath, new XmlReaderSettings());
+}
+xmlReader.MoveToContent();
+
+var map = MetadataMap.Split(';').ToDictionary(x => x.Split('=')[0], x => x.Split('=')[1]);
+
+var items = new List<Microsoft.Build.Framework.ITaskItem>();
+var xpathDoc = new XPathDocument(xmlReader);		
+foreach(XPathNavigator param in xpathDoc.CreateNavigator().Select(ItemQuery))
+{  
+  var item = new Microsoft.Build.Utilities.TaskItem(param.SelectSingleNode(ItemIdentityQuery).Value);
+  foreach(var metadata in map) 
+  {	  
+    if (metadata.Value != null)
+    {
+      var node = param.SelectSingleNode(metadata.Value);
+      if (node != null) {
+        item.SetMetadata(metadata.Key, node.Value.Replace(";", "%3b"));
+      }
+    }
+  }
+  items.Add(item);
+}
+
+Result = items.ToArray();
+xmlReader.Dispose();
+]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SetupParameterization" Condition="Exists($(ParametersFile)) And '$(ImportParametersFiles)'=='true'">
+    <ItemGroup>
+      <MetadataToMap Include="Description=@description" />
+      <MetadataToMap Include="DefaultValue=@defaultValue" />
+      <MetadataToMap Include="Tags=@tags" />
+      <MetadataToMap Include="Kind=//parameterEntry/@type" />
+      <MetadataToMap Include="Scope=//parameterEntry/@scope" />
+      <MetadataToMap Include="Match=//parameterEntry/@match" />
+    </ItemGroup>
+
+
+    <XmlToItemGroup
+      XmlInputPath="$(ParametersFile)"
+      ItemQuery="//parameter"
+      ItemIdentityQuery="@name"
+      MetadataMap="@(MetadataToMap)">
+      <Output TaskParameter="Result" ItemName="ParameterDeclarations" />
+    </XmlToItemGroup>
+    <Message Text="ParameterDeclarations.Identity= %(ParameterDeclarations.Identity)" />
+    <Message Text="ParameterDeclarations.Kind= %(ParameterDeclarations.Kind)" />
+    <Message Text="ParameterDeclarations.Scope= %(ParameterDeclarations.Scope)" />
+    <Message Text="ParameterDeclarations.Match= %(ParameterDeclarations.Match)" />
+    <Message Text="ParameterDeclarations.Description= %(ParameterDeclarations.Description)" />
+    <Message Text="ParameterDeclarations.DefaultValue= %(ParameterDeclarations.DefaultValue)" />
+    <Message Text="ParameterDeclarations.Tags= %(ParameterDeclarations.Tags)" />
+    <Message Text="ParameterDeclarations.ExcludeFromSetParameter= %(ParameterDeclarations.ExcludeFromSetParameter)" />
+
+
+    <ItemGroup>
+      <SetParameterLines Include="&lt;?xml version=%221.0%22 encoding=%22utf-8%22 ?&gt;" />
+      <SetParameterLines Include="&lt;parameters&gt;" />
+      <SetParameterLines Include="&lt;setParameter name=%22%(ParameterDeclarations.Identity)%22 value=%22%(ParameterDeclarations.DefaultValue)%22 /&gt;" />
+      <SetParameterLines Include="&lt;/parameters&gt;" />
+
+      <SetParameterFiles Include="$(MSBuildProjectDirectory)\SetParameters.*.xml" />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="%(DeployTypes.DeployFolder)SetParameters.xml"
+      Lines="@(SetParameterLines)"
+      Overwrite="true" />
+    <Copy
+        SourceFiles="@(SetParameterFiles)"
+        DestinationFolder="%(DeployTypes.DeployFolder)"
+        />
+
+  </Target>
+  <UsingTask TaskName="ReplaceFileText" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\$(MSBuildTasksAssembly)">
+    <ParameterGroup>
+      <InputFilename ParameterType="System.String" Required="true" />
+      <OutputFilename ParameterType="System.String" Required="true" />
+      <MatchExpression ParameterType="System.String" Required="true" />
+      <ReplacementText ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.Core" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+            File.WriteAllText(
+                OutputFilename,
+                Regex.Replace(File.ReadAllText(InputFilename), MatchExpression, ReplacementText)
+                );
+          ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <UsingTask TaskName="UpdateXmlFile" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\$(MSBuildTasksAssembly)">
+    <ParameterGroup>
+      <XmlFilename ParameterType="System.String" Required="true" />
+      <XPath ParameterType="System.String" Required="true" />
+      <NewText ParameterType="System.String" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.Core" />
+      <Reference Include="System.Xml" />
+      <Reference Include="System.Xml.Linq" />
+      <Using Namespace="System" />
+      <Using Namespace="System.Xml" />
+      <Using Namespace="System.Xml.Linq" />
+      <Using Namespace="System.Xml.XPath" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+	var doc = XDocument.Load(XmlFilename);
+	IEnumerable path = (IEnumerable)doc.XPathEvaluate(XPath);
+	
+	foreach(var attribute in path.OfType<XAttribute>().Cast<XAttribute>())
+	{
+		Console.WriteLine(attribute);
+		attribute.Value = NewText ?? string.Empty;
+		Console.WriteLine(attribute);
+	}
+	foreach(var node in path.OfType<XElement>().Cast<XElement>())
+	{
+		Console.WriteLine(node);
+		node.Value = NewText ?? string.Empty;
+		Console.WriteLine(node);
+	}
+	doc.Save(XmlFilename);
+          ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>

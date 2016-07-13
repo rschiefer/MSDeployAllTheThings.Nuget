@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ClusterSecondaryNodes></ClusterSecondaryNodes>
+    <ClusterPrimaryNode Condition="'$(ClusterPrimaryNode)'==''">$(MsDeployServiceUrl.Replace('http://', '').Replace('/MSDEPLOYAGENTSERVICE', ''))</ClusterPrimaryNode>
+    <CreatePackageOnPublish>true</CreatePackageOnPublish>
+    <CurrentSetParameterFile>$(MSBuildProjectDirectory)\SetParameters.$(Configuration).xml</CurrentSetParameterFile>
+    <ParameterFile>$(MSBuildProjectDirectory)\parameters.xml</ParameterFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClusterSecondaryNodes Include="$(ClusterSecondaryNodes)" />
+  </ItemGroup>
+
+  <Import Project="..\..\PublishingPipeline*\**\PublishingPipelineCore.targets" />
+
+
+  <Target Name="AddPrePostSyncCommands" Condition="'$(DeployOnBuild)'=='true'" AfterTargets="Package" >
+    <PropertyGroup>
+      <PrePostSyncArguments>-preSync:runCommand="preSync.changed.bat",waitInterval=1000 -postSync:runCommand="postSync.changed.bat",waitInterval=1000</PrePostSyncArguments>
+    </PropertyGroup>
+    <ReplaceFileText
+      InputFilename="$(GenerateSampleDeployScriptLocation)" 
+      OutputFilename="$(GenerateSampleDeployScriptLocation)"
+      MatchExpression="goto :NextArgument"
+      ReplacementText="goto :NextArgument
+set _ArgMsDeployAdditionalFlags=%_ArgMsDeployAdditionalFlags% $(PrePostSyncArguments)" />
+
+  </Target>
+
+  <Target Name="DeployPublishUpdateParameterDefaults" BeforeTargets="ImportParametersFiles" Condition="'$(DeployTarget)'=='MsDeployPublish' And Exists($(ParameterFile))">
+
+    <Message Text="ParametersXMLFiles=@(ParametersXMLFiles)" />
+
+    <PropertyGroup>
+      <UpdatedParameterFile>$(MSBuildProjectDirectory)\parameters_updated.xml</UpdatedParameterFile>
+      <ProjectParametersXMLFile>$(UpdatedParameterFile)</ProjectParametersXMLFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <ParametersXMLFiles Remove="@(ParametersXMLFiles)" />
+      <ParametersXMLFiles Include="$(UpdatedParameterFile)" />
+    </ItemGroup>
+    <Message Text="ParametersXMLFiles=@(ParametersXMLFiles)" />
+
+    <ItemGroup>
+      <MetadataToMap Include="Value=@value" />
+    </ItemGroup>
+
+    <Copy SourceFiles="$(ParameterFile)" DestinationFiles="$(UpdatedParameterFile)"  />
+    <XmlToItemGroup
+      XmlInputPath="$(CurrentSetParameterFile)"
+      ItemQuery="//setParameter"
+      ItemIdentityQuery="@name"
+      MetadataMap="@(MetadataToMap)">
+      <Output TaskParameter="Result" ItemName="DeclaredParamters" />
+    </XmlToItemGroup>
+    <UpdateXmlFile
+      XmlFilename="$(UpdatedParameterFile)"
+      XPath="//parameter[@name='%(DeclaredParamters.Identity)']/@defaultValue"
+      NewText="%(DeclaredParamters.Value)" />
+
+
+    <!--DELETE if not needed
+    <ExportParametersFile
+      Condition=" $(EnablePackageProcessLoggingAndAssert)"
+      Parameters="@(MsDeployDeclareParameters)"
+      DeclareParameterFile="$(UpdatedParameterFile)"
+      GenerateFileEvenIfEmpty="True"
+      />-->
+  </Target>
+
+
+  <Target Name="PostPackage" AfterTargets="Package">
+    <ItemGroup>
+      <SetParameterFiles Include="$(MSBuildProjectDirectory)\SetParameters.*.xml" />
+    </ItemGroup>
+    <PropertyGroup>
+      <ParameterFilesCount>@(SetParameterFiles->Count())</ParameterFilesCount>
+    </PropertyGroup>
+
+    <Copy SourceFiles="@(SetParameterFiles)" DestinationFolder="$(_PackageRoot)" />
+
+    <Copy Condition="Exists($(CurrentSetParameterFile))" SourceFiles="$(CurrentSetParameterFile)" DestinationFiles="$(_PackageRoot)$(MSBuildProjectName).SetParameters.xml" />
+    <Error Condition="Exists($(ParameterFile)) And !Exists($(CurrentSetParameterFile))" Text="Paramterization file '$(CurrentSetParameterFile)' was not found!  Remove parameters.xml to disable custom parameterization." />
+  </Target>
+
+
+  <Target Name="ClusterSync" AfterTargets="MSDeployPublish" Condition="'$(DeployOnBuild)'=='true' And '$(ClusterSecondaryNodes)' != ''">
+    <Message Text="Syncing to clustered nodes - $(ClusterSecondaryNodes)" />
+    <MSDeploy
+        Verb="Sync"
+        Source="iisApp=$(DeployIisAppPath),computername=$(ClusterPrimaryNode)"
+        Destination="iisApp=$(DeployIisAppPath),computername=%(ClusterSecondaryNodes.Identity)"
+      />
+  </Target>
+
+
+</Project>

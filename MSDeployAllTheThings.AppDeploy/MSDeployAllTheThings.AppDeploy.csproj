@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{BC5904E9-F3EA-429E-8C1B-94348B56112C}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="..\_build\BuildNugetPackage.targets"/>
+  <ItemGroup>
+    <None Include="MSDeployAllTheThings.AppDeploy.nuspec" />
+    <None Include="nuget\content\deployment\postSync.bat" />
+    <None Include="nuget\content\deployment\preSync.bat" />
+    <None Include="nuget\content\UpdateToProjectName.app.targets" />
+    <None Include="nuget\tools\AppPublishingPipeline.targets">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="nuget\tools\install.ps1" />
+    <None Include="nuget\tools\uninstall.ps1" />
+    <None Include="nuget\readme.txt" />
+  </ItemGroup>
+</Project>

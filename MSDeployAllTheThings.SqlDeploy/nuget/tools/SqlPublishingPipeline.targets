@@ -1,0 +1,461 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DeployOnBuild Condition=" '$(DeployOnBuild)'=='' ">false</DeployOnBuild>
+    <CreatePackageAndDeployOnPublish Condition=" '$(CreatePackageAndDeployOnPublish)'=='' ">false</CreatePackageAndDeployOnPublish>
+    <DeploymentOutput>$(OutDir)</DeploymentOutput>
+    <FixDacPacReferences>true</FixDacPacReferences>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <DbDeployments>
+      <CommandTimeout>200</CommandTimeout>
+      <UseTransaction>true</UseTransaction>
+      <DacPacOptions></DacPacOptions>
+    </DbDeployments>
+    <ReferencedDacPacs></ReferencedDacPacs>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <DeployTypes Include="sqlDeploy" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).spp.targets" />
+  <Import Project="..\..\PublishingPipeline*\**\PublishingPipelineCore.targets" />
+
+
+  <UsingTask
+    TaskName="FixDacPacReferences"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\$(MSBuildTasksAssembly)" >
+    <ParameterGroup>
+      <DacPacPath ParameterType="System.String" Required="true" />
+      <ReferencedDacPacs ParameterType="System.String[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.IO.Compression"/>
+      <Reference Include="System.IO.Compression.FileSystem"/>
+      <Reference Include="System.Security"/>
+      <Reference Include="System.Xml"/>
+      <Reference Include="System.Xml.Linq"/>
+      <Reference Include="System.Linq"/>
+      <Using Namespace="System"/>
+      <Using Namespace="System.Linq"/>
+      <Using Namespace="System.Xml.Linq"/>
+      <Using Namespace="System.Xml"/>
+      <Using Namespace="System.Xml.XPath"/>
+      <Using Namespace="System.Security.Cryptography"/>
+      <Using Namespace="System.Globalization"/>
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+var output = new List<string>();
+Console.WriteLine("Searching \"{0}\" for DacPac references to update.", DacPacPath);
+var dacpacPath = DacPacPath;
+	using (var package = System.IO.Compression.ZipFile.Open(dacpacPath, System.IO.Compression.ZipArchiveMode.Update)){
+		var originFile = package.Entries.First (x => x.Name == "Origin.xml");
+		var modelFile = package.Entries.First (x => x.Name == "model.xml");
+				
+		using (var stream = modelFile.Open()) {
+			var file = XDocument.Load(stream);
+			XmlNamespaceManager namespaces = new XmlNamespaceManager(new NameTable());
+			XNamespace ns = file.Root.GetDefaultNamespace();
+			namespaces.AddNamespace("ns", ns.NamespaceName);
+			var compositeReferenceFilenameNodes = file.XPathSelectElements("//ns:CustomData[@Type='SqlSchema']/ns:Metadata[@Name='FileName']", namespaces);
+			foreach (var node in compositeReferenceFilenameNodes) {
+				var attribute = node.Attribute("Value");				
+        output.Add(attribute.Value);
+        Console.WriteLine("DacPac reference found - {0}", attribute.Value);
+				var newFilePath = attribute.Value.Substring(attribute.Value.LastIndexOf("\\")+1);
+				attribute.Value = newFilePath;
+        Console.WriteLine("DacPac reference changed to - {0}", attribute.Value);
+			}
+			stream.Flush();
+			stream.Position = 0;
+			file.Save(stream);
+		}		
+		
+		var hashGenerator = HashAlgorithm.Create("System.Security.Cryptography.SHA256CryptoServiceProvider");
+		string hashString = null;
+		using (var modelStream = modelFile.Open()){
+			var hash = hashGenerator.ComputeHash(modelStream);
+			hashString = string.Concat(hash.Select(b => b.ToString("X2", CultureInfo.InvariantCulture)));
+		}
+			
+		using (var stream = originFile.Open()) {			
+			var file = XDocument.Load(stream);
+			XmlNamespaceManager namespaces = new XmlNamespaceManager(new NameTable());
+			XNamespace ns = file.Root.GetDefaultNamespace();
+			namespaces.AddNamespace("ns", ns.NamespaceName);
+
+			var checksumNode = file.XPathSelectElement("//ns:Checksum", namespaces);			
+      Console.WriteLine("CheckSum found - {0}", checksumNode.Value);
+			checksumNode.Value = hashString;
+      Console.WriteLine("CheckSum updated to - {0}", checksumNode.Value);
+			
+			stream.Flush();
+			stream.Position = 0;
+			file.Save(stream);
+		}		
+	}
+ReferencedDacPacs = output.ToArray();
+]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="SPP-DeploySqlPipeline" AfterTargets="Build" Condition="'$(DeployOnBuild)'=='true' And '@(DbDeployments)' != '' ">
+    <Message Importance="high" Text="Starting SqlPublishingPipeline ..." />
+
+    <CallTarget Targets="SPP-GetDatabaseConnectionsFromConfig"/>
+    <CallTarget Targets="SPP-GenerateDbProjectScripts" />
+    <CallTarget Targets="SPP-CreateDeployCommand"/>
+    <CallTarget Targets="SPP-DeployScript" Condition="'$(CreatePackageAndDeployOnPublish)'=='true'" />
+
+  </Target>
+
+  <Target Name="SPP-GetDatabaseConnectionsFromConfig">
+
+    <ItemGroup>
+      <ConfigFile Include="$(OutDir)*.config"></ConfigFile>
+    </ItemGroup>
+    <Message Text="ConfigFiles=@(ConfigFile)" />
+
+    <XmlPeek Condition="'%(DbDeployments.Identity)'!=''"
+      Query="/configuration/connectionStrings/add[@name='%(DbDeployments.Identity)']/@connectionString"
+      XmlInputPath="@(ConfigFile)">
+      <Output TaskParameter="Result" PropertyName="%(DbDeployments.Identity)-Connection" />
+    </XmlPeek>
+  </Target>
+
+  <Target Name="SPP-GenerateDbProjectScripts" Inputs="@(DbDeployments->HasMetadata('DatabaseProject'))" Outputs="%(identity).Batching" > 
+    <Message Text="MSBuildProjectDirectory=$(MSBuildProjectDirectory)" />
+    <PropertyGroup>
+      <DatabaseProjectExtension>dbproj</DatabaseProjectExtension>
+      <DatabaseProjectExtension Condition="'$(VisualStudioVersion)'=='11.0' Or '$(VisualStudioVersion)'=='12.0' Or '$(VisualStudioVersion)'=='14.0'">sqlproj</DatabaseProjectExtension>
+      <DbProjectScriptFilename>@(DbDeployments->Metadata('DatabaseProject'))_sqlDeployGenerated.sql</DbProjectScriptFilename>
+      <SourceProject>$(ProjectDir)..\@(DbDeployments->Metadata('DatabaseProject'))\@(DbDeployments->Metadata('DatabaseProject')).$(DatabaseProjectExtension)</SourceProject>
+      <TargetDatabase>$(%(DbDeployments.Identity)-Connection.Replace(';','%3b'))</TargetDatabase>
+      <SqlPublishProfile>@(DbDeployments->Metadata('SqlPublishProfile'))</SqlPublishProfile>
+      <SqlPublishProfile Condition="'$(SqlPublishProfile)'==''">@(DbDeployments->Metadata('DatabaseProject')).$(Configuration).publish.xml</SqlPublishProfile>
+      <SqlPublishProfilePath>$([System.IO.Path]::GetDirectoryName($(SourceProject)))\$(SqlPublishProfile)</SqlPublishProfilePath>
+      <GeneratedScriptPath>@(DbDeployments->Metadata('GeneratedScriptPath'))</GeneratedScriptPath>
+      <TFSOutDirKeyword Condition="'$(TFSOutDirKeyword)'==''">Binaries</TFSOutDirKeyword>
+      <IsTFSBuild Condition="$(DeploymentOutput.Contains('$(TFSOutDirKeyword)'))==True">true</IsTFSBuild>
+      <BaseOutDirPath Condition="'$(IsTFSBuild)'=='true'">$(MSBuildProjectDirectory.Remove($(DeploymentOutput.LastIndexOf('\$(TFSOutDirKeyword)'))))</BaseOutDirPath>
+      <RelativeOutDir Condition="'$(IsTFSBuild)'=='true'">..\..\..$(BaseOutDirPath.Substring($(BaseOutDirPath.LastIndexOf('\'))))\</RelativeOutDir>
+      <DeploymentOutput Condition="'$(IsTFSBuild)'=='true'">$(RelativeOutDir)$(TFSOutDirKeyword)\</DeploymentOutput>
+      <ScriptDatabaseOptionsOverride Condition="'$(ScriptDatabaseOptionsOverride)'==''">False</ScriptDatabaseOptionsOverride>
+    </PropertyGroup>
+
+    <Message Text="DatabaseProjectExtension=$(DatabaseProjectExtension)" />
+    <Message Text="DbProjectScriptFilename=$(DbProjectScriptFilename)" />
+    <Message Text="SourceProject=$(SourceProject)" />
+    <Message Text="TargetDatabase=$(TargetDatabase)" />
+    <Message Text="SqlPublishProfile=$(SqlPublishProfile)" />
+    <Message Text="SqlPublishProfilePath=$(SqlPublishProfilePath)" />
+    <Message Text="GeneratedScriptPath=$(GeneratedScriptPath)" />
+    <Message Text="TFSOutDirKeyword=$(TFSOutDirKeyword)" />
+    <Message Text="IsTFSBuild=$(IsTFSBuild)" />
+    <Message Text="BaseOutDirPath=$(BaseOutDirPath)" />
+    <Message Text="RelativeOutDir=$(RelativeOutDir)" />
+    <Message Text="DeploymentOutput=$(DeploymentOutput)" />
+    <Message Text="ScriptDatabaseOptionsOverride=$(ScriptDatabaseOptionsOverride)" />
+    <Message Text="OutDir=$(OutDir)" />
+
+    <Message Text="DatabaseProject = %(DbDeployments.DatabaseProject)"/>
+    <Message Text="DbProjectScriptFilename=$(DbProjectScriptFilename)" />
+
+    <Message Text="Starting Db Project script generation..." />
+    <Message Text="Source=$(SourceProject)" />
+    <Message Text="Target=$(TargetDatabase)" />
+    <MSBuild
+      Condition="'$(VisualStudioVersion)'=='10.0'"
+      Projects="$(SourceProject)"
+      Properties="TargetConnectionString=$(TargetDatabase);DeployToDatabase=False;DeployScriptFileName=$(DbProjectScriptFilename);VisualStudioVersion=$(VisualStudioVersion)"
+      Targets="Build;Deploy"  >
+      <Output TaskParameter="TargetOutputs" PropertyName="DbProjectScriptPath" />
+    </MSBuild>
+
+    <XmlPeek
+      Condition="Exists('$(SqlPublishProfilePath)')"
+      Query="//msb:TargetConnectionString"
+      Namespaces="&lt;Namespace Prefix='msb' Uri='http://schemas.microsoft.com/developer/msbuild/2003'/&gt;"
+      XmlInputPath="$(SqlPublishProfilePath)">
+      <Output TaskParameter="Result" PropertyName="ProfileConnectionString" />
+    </XmlPeek>
+    <XmlPeek
+      Condition="Exists('$(SqlPublishProfilePath)')"
+      Query="//msb:ScriptDatabaseOptions"
+      Namespaces="&lt;Namespace Prefix='msb' Uri='http://schemas.microsoft.com/developer/msbuild/2003'/&gt;"
+      XmlInputPath="$(SqlPublishProfilePath)">
+      <Output TaskParameter="Result" PropertyName="ScriptDatabaseOptions_CurrentValue" />
+    </XmlPeek>
+    <!--Create a copy of the publish profile to edit-->
+    <ItemGroup>
+      <PublishProfileFilesToCopy Include="$(SqlPublishProfilePath)" />
+    </ItemGroup>
+    <Copy Condition="Exists('$(SqlPublishProfilePath)')" SourceFiles="@(PublishProfileFilesToCopy)" DestinationFolder="%(PublishProfileFilesToCopy.RootDir)%(PublishProfileFilesToCopy.Directory)EditedPublishFile" >
+      <Output TaskParameter="CopiedFiles" ItemName="SqlPublishProfilePath" />
+    </Copy>
+    <PropertyGroup>
+      <SqlPublishProfilePath>%(SqlPublishProfilePath.FullPath)</SqlPublishProfilePath>
+      <SqlPublishProfile>%(SqlPublishProfilePath.FullPath)</SqlPublishProfile>
+    </PropertyGroup>
+    <!--ScriptDatabaseOptions setting exists in publish profile-->
+    <XmlPoke
+      Condition="Exists('$(SqlPublishProfilePath)') And '$(ScriptDatabaseOptions_CurrentValue)' != ''"
+      Query="//msb:ScriptDatabaseOptions"
+      Namespaces="&lt;Namespace Prefix='msb' Uri='http://schemas.microsoft.com/developer/msbuild/2003'/&gt;"
+      XmlInputPath="$(SqlPublishProfilePath)"
+      Value="$(ScriptDatabaseOptionsOverride)">
+    </XmlPoke>
+    <!--ScriptDatabaseOptions setting DOES NOT exist in publish profile-->
+    <XmlPeek
+      Condition="Exists('$(SqlPublishProfilePath)') And '$(ScriptDatabaseOptions_CurrentValue)' == ''"
+      Query="//msb:PropertyGroup/*"
+      Namespaces="&lt;Namespace Prefix='msb' Uri='http://schemas.microsoft.com/developer/msbuild/2003'/&gt;"
+      XmlInputPath="$(SqlPublishProfilePath)">
+      <Output TaskParameter="Result" PropertyName="publishProfilePropertyNodes" />
+    </XmlPeek>
+    <PropertyGroup>
+      <publishProfilePropertyNodes>$(publishProfilePropertyNodes)&lt;ScriptDatabaseOptions&gt;$(ScriptDatabaseOptionsOverride)&lt;/ScriptDatabaseOptions&gt;</publishProfilePropertyNodes>
+      <publishProfilePropertyNodes_noXmlns>$([System.Text.RegularExpressions.Regex]::Replace($(publishProfilePropertyNodes), 'xmlns=&quot;[^&quot;]*&quot;', ''))</publishProfilePropertyNodes_noXmlns>
+      <publishProfilePropertyNodes_final>$(publishProfilePropertyNodes_noXmlns.Replace('>;', '>'))</publishProfilePropertyNodes_final>
+    </PropertyGroup>
+    <Message Text="publishProfilePropertyNodes= $(publishProfilePropertyNodes)"/>
+    <Message Text="publishProfilePropertyNodes_noXmlns= $(publishProfilePropertyNodes_noXmlns)"/>
+    <Message Text="publishProfilePropertyNodes_final= $(publishProfilePropertyNodes_final)"/>
+    <XmlPoke
+      Condition="Exists('$(SqlPublishProfilePath)') And '$(ScriptDatabaseOptions_CurrentValue)' == ''"
+      Query="//msb:PropertyGroup"
+      Namespaces="&lt;Namespace Prefix='msb' Uri='http://schemas.microsoft.com/developer/msbuild/2003'/&gt;"
+      XmlInputPath="$(SqlPublishProfilePath)"
+      Value="$(publishProfilePropertyNodes_final)">
+    </XmlPoke>
+
+    <Message Text="ProfileConnectionString=$(ProfileConnectionString)"/>
+    <Message Text="TargetDatabase=$(TargetDatabase)"/>
+    <Warning
+      Condition="'$(VisualStudioVersion)'=='11.0' AND '$(ProfileConnectionString).Contains($(TargetDatabase))'=='false'"
+      Text="The deployment connection string and Database project profile connection string do not match." />
+
+    <PropertyGroup>
+      <ScriptsMetadata>@(DbDeployments->Metadata('Scripts'))</ScriptsMetadata>
+      <DbProjectTargets>ReBuild;Publish</DbProjectTargets>
+      <DbProjectTargets Condition="$(ScriptsMetadata.Contains('.dacpac'))">ReBuild</DbProjectTargets>
+    </PropertyGroup>
+    <MSBuild
+      Condition="'$(VisualStudioVersion)'=='11.0' Or '$(VisualStudioVersion)'=='12.0' Or '$(VisualStudioVersion)'=='14.0'"
+      Projects="$(SourceProject)"
+      Properties="UpdateDatabase=False;PublishScriptFileName=$(DbProjectScriptFilename);SqlPublishProfilePath=$(SqlPublishProfile);VisualStudioVersion=$(VisualStudioVersion);ScriptDatabaseOptions=$(ScriptDatabaseOptionsOverride)"
+      Targets="$(DbProjectTargets)"  >
+      <Output TaskParameter="TargetOutputs" PropertyName="DbProjectScriptPath" />
+      <Output TaskParameter="TargetOutputs" PropertyName="SqlPublishOutputItem" />
+    </MSBuild>
+    <Message Text="DbProjectScriptPath = $(DbProjectScriptPath)"></Message>
+    <PropertyGroup>
+      <DbProjectScriptPath>$([System.IO.Path]::GetDirectoryName($(DbProjectScriptPath)))\$(DbProjectScriptFilename)</DbProjectScriptPath>
+
+    </PropertyGroup>
+    <ItemGroup>
+      <DacPacFiles Include="$([System.IO.Path]::GetDirectoryName($(DbProjectScriptPath)))\*.dacpac" />
+    </ItemGroup>
+    <Message Text="DbProjectScriptPath = $(DbProjectScriptPath)"></Message>
+
+    <Copy
+      Condition="Exists($(DbProjectScriptPath))"
+      SourceFiles="$(DbProjectScriptPath)"
+      DestinationFolder="$(DeploymentOutput)$(GeneratedScriptPath)" />
+
+    <Copy
+      Condition="Exists(%(DacPacFiles.Identity))"
+      SourceFiles="@(DacPacFiles)"
+      DestinationFolder="$(DeploymentOutput)$(GeneratedScriptPath)" />
+
+    <ItemGroup>
+      <DacPacFilesToDeploy Include="$(DeploymentOutput)$(GeneratedScriptPath)\*.dacpac" />
+    </ItemGroup>
+    <Message Text="DacPacFilesToDeploy - %(DacPacFilesToDeploy.Identity)" />
+    <FixDacPacReferences
+      Condition="'$(FixDacPacReferences)'=='true'"
+      DacPacPath="%(DacPacFilesToDeploy.Identity)" >
+      <Output TaskParameter="ReferencedDacPacs" ItemName="ReferencedDacPacs" />
+    </FixDacPacReferences>
+
+    <Message Text="Db Project script generation complete." />
+
+    <Message Text="OutputPath - $(OutputPath)" />
+    <Message Text="OutDir - $(OutDir)" />
+    <Message Text="BuildDefinitionName - $(BuildDefinitionName)" />
+    <Message Text="BinariesRoot - $(BinariesRoot)" />
+    <!--<Message Text="DeploymentOutput + DbProjects.DbDeployment - $(DeploymentOutput)%(DbProjects.DbDeployment)" />-->
+    <PropertyGroup>
+      <RelativDbDeploymentPath>$([MSBuild]::MakeRelative($([System.IO.Path]::GetFullPath($(OutDir))), $(DeploymentOutput)%(DbProjects.DbDeployment)).ToString())</RelativDbDeploymentPath>
+      <!--<RelativDbDeploymentPath>bin\Debug\AccessNow\**\*.sql</RelativDbDeploymentPath>-->
+      <!--<RelativDbDeploymentPath>$(RelativDbDeploymentPath.ToString())</RelativDbDeploymentPath>-->
+    </PropertyGroup>
+
+    <Message Text="RelativDbDeploymentPath=$(RelativDbDeploymentPath)"/>
+
+
+    <!--<ItemGroup>
+
+      <DbDeployments Include="%(DbProjects.DbDeployment)">
+        <TargetConnectionName>%(DbProjects.TargetConnectionName)</TargetConnectionName>
+      </DbDeployments>
+    </ItemGroup>-->
+
+    <!--<Message Text="$([MSBuild]::MakeRelative($([System.IO.Path]::GetFullPath($(OutDir))), %(DbDeployments.FullPath)))" />-->
+
+  </Target>
+
+  <Target Name="SPP-CreateDeployCommand" Inputs="@(DeployTypes->WithMetadataValue('identity', 'sqlDeploy'))" Outputs="%(identity).Batching">
+
+    <ItemGroup>
+      <SqlScripts Include="$(DeploymentOutput)%(DbDeployments.Scripts)"  >
+        <TargetConnectionName>%(DbDeployments.Identity)</TargetConnectionName>
+        <CommandTimeout>%(DbDeployments.CommandTimeout)</CommandTimeout>
+        <UseTransaction>%(DbDeployments.UseTransaction)</UseTransaction>
+        <DacPacBlockOnDataLoss>%(DbDeployments.DacPacBlockOnDataLoss)</DacPacBlockOnDataLoss>
+        <DacPacOptions>%(DbDeployments.DacPacOptions)</DacPacOptions>
+      </SqlScripts>
+    </ItemGroup>
+
+    <Message Text="script=%(SqlScripts.Identity); target=%(SqlScripts.TargetConnectionName)" />
+    <Exec Command="rd &quot;%(DeployTypes.DeployFolder)&quot; /s /q" IgnoreExitCode="true" />
+    <Exec Command="md &quot;%(DeployTypes.DeployFolder)&quot;" IgnoreExitCode="true" />
+
+    <PropertyGroup>
+      <DeployFolder>@(DeployTypes->Metadata('DeployFolder'))</DeployFolder>
+    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Properties="DeployFolder=$(DeployFolder)"
+             Targets="SetupParameterization" />
+
+    <!-- Create source manifest file -->
+    <PropertyGroup>
+      <SourceManifestPath>$(OutDir)SourceManifest.xml</SourceManifestPath>
+      <DestinationManifestFilename>DestinationManifest.xml</DestinationManifestFilename>
+      <DestinationManifestPath>$(OutDir)$(DestinationManifestFilename)</DestinationManifestPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <SourceManifestLines Include="&lt;SqlDeployManifest&gt;" />
+      <SourceManifestLines Condition="'@(SqlScripts->EndsWith('dacpac'))' == 'true'" Include="&lt;dbDacFx path=%22$([System.IO.Path]::GetFullPath(%(SqlScripts.Identity)))%22 commandTimeout=%22%(SqlScripts.CommandTimeout)%22 /&gt;" />
+      <SourceManifestLines Condition="'@(SqlScripts->EndsWith('dacpac'))' != 'true'" Include="&lt;dbFullSql path=%22$([System.IO.Path]::GetFullPath(%(SqlScripts.Identity)))%22 commandTimeout=%22%(SqlScripts.CommandTimeout)%22 transacted=%22%(SqlScripts.UseTransaction)%22 /&gt;" />
+      <SourceManifestLines Include="&lt;/SqlDeployManifest&gt;" />
+
+      <DestinationManifestLines Include="&lt;SqlDeployManifest&gt;" />
+      <DestinationManifestLines Condition="'%(SqlScripts.Identity)'!='' And '@(SqlScripts->EndsWith('dacpac'))' == 'true'" Include="&lt;dbDacFx path=%22$(%(SqlScripts.TargetConnectionName)-Connection.Replace(';','%3b'))%22 commandTimeout=%22%(SqlScripts.CommandTimeout)%22 %(SqlScripts.DacPacOptions) /&gt;" />
+      <DestinationManifestLines Condition="'%(SqlScripts.Identity)'!='' And '@(SqlScripts->EndsWith('dacpac'))' != 'true'" Include="&lt;dbFullSql path=%22$(%(SqlScripts.TargetConnectionName)-Connection.Replace(';','%3b'))%22 commandTimeout=%22%(SqlScripts.CommandTimeout)%22 transacted=%22%(SqlScripts.UseTransaction)%22 /&gt;" />
+      <DestinationManifestLines Include="&lt;/SqlDeployManifest&gt;" />
+
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(SourceManifestPath)"
+      Lines="@(SourceManifestLines)"
+      Overwrite="true" />
+    <WriteLinesToFile
+      File="$(DestinationManifestPath)"
+      Lines="@(DestinationManifestLines)"
+      Overwrite="true" />
+    <Copy
+        SourceFiles="$(DestinationManifestPath)"
+        DestinationFolder="%(DeployTypes.DeployFolder)"
+        />
+
+    <Copy
+        SourceFiles="@(ReferencedDacPacs)"
+        DestinationFolder="%(DeployTypes.DeployFolder)"
+        />
+
+    <MSDeploy
+      Condition="'$(ImportParametersFiles)'!='true'"
+      Verb="sync"
+      Source="manifest=%22$([System.IO.Path]::GetFullPath($(SourceManifestPath)))%22"
+      Destination="package=%22$([System.IO.Path]::GetFullPath(%(DeployTypes.DeployPackagePath)))%22"
+      />
+    <MSDeploy
+      Condition="Exists($(ParametersFile)) And '$(ImportParametersFiles)'=='true'"
+      Verb="sync"
+      Source="manifest=%22$([System.IO.Path]::GetFullPath($(SourceManifestPath)))%22"
+      Destination="package=%22$([System.IO.Path]::GetFullPath(%(DeployTypes.DeployPackagePath)))%22"
+      ImportDeclareParametersItems="$(MSBuildProjectDirectory)\parameters.xml"
+      />
+
+    <Message Importance="high" Text="Creating deploy command - %(DeployTypes.DeployCommandFilename)" />
+    <ItemGroup>
+      <PreDeployLines Include="@ECHO OFF" />
+      <PreDeployLines Include="IF %22%1%22==%22%22 GOTO Readme" />
+      <PreDeployLines Include=":Deploy" />
+      <PreDeployLines Include="set WHATIFFLAG=-whatif" />
+      <PreDeployLines Include="IF %22%1%22==%22/Y%22 set WHATIFFLAG=" />
+      <PreDeployLines Include="IF %22%1%22==%22/y%22 set WHATIFFLAG=" />
+
+      <DeployLines Include="@ECHO ON" />
+      <!--v2 - does not use manifests-->
+      <!--<DeployLines Condition="'%(SqlScripts.Identity)'!=''" Include="&quot;$(MSDeployPath)&quot; -verb:sync -source:dbFullSql=&quot;%25CD%25\$([MSBuild]::MakeRelative($([System.IO.Path]::GetFullPath($(DeploymentOutput))), %(SqlScripts.Identity)).ToString())&quot; -dest:dbFullSql=&quot;$(%(SqlScripts.TargetConnectionName)-Connection.Replace(';','%3B'))&quot;,commandTimeout=%(SqlScripts.CommandTimeout),transacted=%(SqlScripts.UseTransaction) %WHATIFFLAG% %2 %3 %4 %5 %6 %7 %8 %9" />-->
+
+      <!--v3 - uses manifests -->
+      <DeployLines Include="&quot;$(MSDeployPath)&quot; -verb:sync -source:package=%22%25CD%25\%(DeployTypes.DeployPackageName)%22 -dest:manifest=&quot;$(DestinationManifestFilename)&quot; %WHATIFFLAG% %~2 %~3 %~4 %~5 %~6 %~7 %~8 %~9" />
+
+      <DeployLines Include="@ECHO OFF" />
+
+      <ReadMeLines Include="GOTO End" />
+      <ReadMeLines Include=":Readme" />
+      <ReadMeLines Include="ECHO." />
+
+      <ReadMeLines Include="ECHO Deploys sql scripts to target servers using MSDeploy" />
+      <ReadMeLines Include="ECHO." />
+      <ReadMeLines Include="ECHO %(DeployTypes.DeployCommandFilenameOnly) [/T^|/Y] [Other MSDeploy parameters (up to 8)]" />
+      <ReadMeLines Include="ECHO." />
+      <ReadMeLines Include="ECHO   /T - Try deployment in whatif scenario." />
+      <ReadMeLines Include="ECHO   /Y - Deploys scripts to servers." />
+      <ReadMeLines Include="ECHO   MSBuild params - You may optionally add any other MSDeploy parameters to the call.  For example:" />
+      <ReadMeLines Include="ECHO     -retryAttempts" />
+      <ReadMeLines Include="ECHO     -verbose" />
+      <ReadMeLines Include="ECHO." />
+      <ReadMeLines Include="ECHO You can send the command output to a log file by appending %22 > msdeploy.log%22 to the command. " />
+      <ReadMeLines Include="ECHO." />
+      <ReadMeLines Include="ECHO %(DeployTypes.DeployCommandFilenameOnly) [/T^|/Y] > msdeploy.log" />
+      <ReadMeLines Include="ECHO notepad msdeploy.log" />
+      <ReadMeLines Include="ECHO." />
+
+      <ReadMeLines Include="GOTO End" />
+
+      <ReadMeLines Include=":End" />
+      <ReadMeLines Include=" " />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <DeployFolder Condition="'%(DeployTypes.Identity)'=='sqlDeploy'">%(DeployTypes.DeployFolder)</DeployFolder>
+    </PropertyGroup>
+    <Message Text="SqlScripts.RelativeDir=%(SqlScripts.RelativeDir)" />
+    <Exec Command="xcopy &quot;%(RootDir)%(SqlScripts.Directory)*&quot; &quot;$(DeployFolder)$([MSBuild]::MakeRelative($([System.IO.Path]::GetFullPath($(DeploymentOutput))), %(SqlScripts.RelativeDir)).ToString())&quot; /i /Y" IgnoreExitCode="true" />
+    <WriteLinesToFile
+      File="%(DeployTypes.DeployCommandFilename)"
+      Lines="@(PreDeployLines)"
+      Overwrite="true"
+    />
+    <WriteLinesToFile
+      File="%(DeployTypes.DeployCommandFilename)"
+      Lines="@(DeployLines)"
+      Overwrite="false"
+    />
+    <WriteLinesToFile
+      File="%(DeployTypes.DeployCommandFilename)"
+      Lines="@(ReadMeLines)"
+      Overwrite="false"
+    />
+
+  </Target>
+  <Target Name="SPP-DeployScript" Inputs="@(DeployTypes->WithMetadataValue('Identity', 'sqlDeploy'))" Outputs="%(identity).Batching">
+    <Message Importance="high" Text="Deploying sql to databases" />
+
+    <PropertyGroup>
+      <Command>$([System.String]::Copy('%(DeployTypes.DeployCommandFilenameOnly)').Trim())</Command>
+      <DeployFolder>$([System.String]::Copy('%(DeployTypes.DeployFolder)').Trim())</DeployFolder>
+    </PropertyGroup>
+
+    <Exec Condition="'$(ImportParametersFiles)'!='true'" Command="$(Command) /Y " WorkingDirectory="$(DeployFolder)" />
+    <Exec Condition="'$(ImportParametersFiles)'=='true'" Command="$(Command) /Y -setParamFile:&quot;$(CurrentSetParameterFile)&quot;" WorkingDirectory="$(DeployFolder)" />
+
+  </Target>
+</Project>

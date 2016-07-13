@@ -1,0 +1,156 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DeployOnBuild Condition=" '$(DeployOnBuild)'=='' ">false</DeployOnBuild>
+    <!--<CreatePackageAndDeployOnPublish Condition=" '$(CreatePackageAndDeployOnPublish)'=='' ">true</CreatePackageAndDeployOnPublish>-->
+    <AppTypeFolder Condition=" '$(AppTypeFolder)'=='' ">Services</AppTypeFolder>
+    <DestinationComputerName Condition=" '$(DestinationComputerName)'=='' ">LOCALHOST</DestinationComputerName>
+
+
+    <WaitInterval Condition="'$(WaitInterval)'==''">1000</WaitInterval>
+    <FileOnlyDeployment Condition="'$(FileOnlyDeployment)'==''">false</FileOnlyDeployment>
+    <PreSyncFile>preSync.bat</PreSyncFile>
+    <PostSyncFile>postSync.bat</PostSyncFile>
+    <NewPreSyncFile>preSync.changed.bat</NewPreSyncFile>
+    <NewPostSyncFile>postSync.changed.bat</NewPostSyncFile>
+
+    <APP-DeployApplicationPipelineDependsOn></APP-DeployApplicationPipelineDependsOn>
+  </PropertyGroup>
+  <ItemGroup>
+    <DestinationComputerName Include="$(DestinationComputerName)" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).app.targets"/>
+  <Import Project="..\..\PublishingPipeline*\**\PublishingPipelineCore.targets" />
+
+
+  <ItemGroup>
+    <BatchCommandVariables Include="$(BatchCommandVariables)" />
+    <BatchCommandVariables Include="$(BatchCommandVariablesFromCommandLine)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <DeployTypes Include="appDeploy" />
+  </ItemGroup>
+
+
+  <Target Name="APP-DeployApplicationPipeline" Condition="$(DeployOnBuild)=='true'" AfterTargets="Build" DependsOnTargets="$(APP-DeployApplicationPipelineDependsOn)">
+    <Message Importance="high" Text="Starting AppPublishingPipeline ..." />
+
+    <CallTarget Targets="APP-CreateDeployCommand" />
+    <CallTarget Targets="APP-DeployApplication" Condition="$(CreatePackageAndDeployOnPublish)=='true'" />
+  </Target>
+  <Target Name="APP-CreateDeployCommand" Inputs="@(DeployTypes->WithMetadataValue('Identity', 'appDeploy'))" Outputs="%(identity).Batching">
+
+    <Message Importance="high" Text="Creating deploy package - %(DeployTypes.DeployCommandFilename)" />
+
+    <!--<Exec Command="%22$(MSDeployPath)%22 -verb:sync -source:dirPath=%22$(OutDir)%22 -dest:package=%22$(DeployPackagePath)%22" />-->
+    <PropertyGroup>
+      <UpdatedParameterFile>$(MSBuildProjectDirectory)\parameters_updated.xml</UpdatedParameterFile>
+      <!--<DeployPackagePath>$(DeployFolder)$(AppName).appDeploy.package.zip</DeployPackagePath>-->
+      <FilesToPackageFolder>$(OutDir)%(DeployTypes.Identity)-FilesToPackage</FilesToPackageFolder>
+    </PropertyGroup>
+
+    <Exec Command="rd &quot;%(DeployTypes.DeployFolder)&quot; /s /q" IgnoreExitCode="true" />
+    <Exec Command="md &quot;%(DeployTypes.DeployFolder)&quot;" IgnoreExitCode="true" />
+    <Exec Command="rd &quot;$(FilesToPackageFolder)&quot; /s /q" IgnoreExitCode="true" />
+    <Exec Command="md &quot;$(FilesToPackageFolder)&quot;" IgnoreExitCode="true" />
+
+
+    <ItemGroup>
+      <ParameterLines Include="&lt;?xml version=%221.0%22 encoding=%22utf-8%22 ?&gt;" />
+      <ParameterLines Include="&lt;parameters&gt;" />
+      <ParameterLines Include="&lt;/parameters&gt;" />
+
+      <FilesToPackage Condition="'@(FilesToPackage)'==''" Include="$(OutDir)\**" />
+      <DeploymentFiles Include="deployment\**" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(DeploymentFiles)" DestinationFolder="%(DeployTypes.DeployFolder)" />
+
+    <Copy SourceFiles="@(FilesToPackage)" DestinationFiles="@(FilesToPackage->'$(FilesToPackageFolder)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+    <Copy Condition="Exists($(ParametersFile))" SourceFiles="$(ParametersFile)" DestinationFiles="$(UpdatedParameterFile)" />
+    <WriteLinesToFile
+      Condition="!Exists($(UpdatedParameterFile)) Or '$(ImportParametersFiles)' != 'true'"
+      File="$(UpdatedParameterFile)"
+      Lines="@(ParameterLines)"
+      Overwrite="true" />
+
+    <MSDeploy
+      
+      Verb="sync"
+      Source="dirPath=%22$([System.IO.Path]::GetFullPath($(FilesToPackageFolder)))%22"
+      Destination="package=%22$([System.IO.Path]::GetFullPath(%(DeployTypes.DeployPackagePath)))%22"
+      ImportDeclareParametersItems="$(UpdatedParameterFile)"
+      />
+
+    <PropertyGroup>
+      <DeployFolder>@(DeployTypes->Metadata('DeployFolder'))</DeployFolder>
+    </PropertyGroup>
+    <CallTarget Targets="SetupParameterization" />
+
+    <Message Importance="high" Text="Creating deploy command - %(DeployTypes.DeployCommandFilename)" />
+    <ItemGroup> 
+      <Lines Include="@ECHO OFF" />
+      <Lines Include="IF %22%1%22==%22%22 GOTO Readme" />
+
+      <Lines Include=":Deploy" />
+      <Lines Include="ECHO Adding variables to pre/post scripts" />
+      <Lines Include="ECHO set configuration=$(Configuration)> $(NewPreSyncFile)" />
+      <Lines Include="ECHO set server=%1>> $(NewPreSyncFile)" />
+      <Lines Include="ECHO set appName=$(AppName)>> $(NewPreSyncFile)" />
+      <Lines Include="ECHO set destinationFilePath=$(DestinationFilePath)>> $(NewPreSyncFile)" />
+      <Lines Condition="'@(BatchCommandVariables)'!=''" Include="ECHO set %(BatchCommandVariables.Identity)>> $(NewPreSyncFile)" />
+      <Lines Condition="'$(FileOnlyDeployment)'!='true'" Include="type $(PreSyncFile)>> $(NewPreSyncFile)" />
+
+      <Lines Include="ECHO set configuration=$(Configuration)> $(NewPostSyncFile)" />
+      <Lines Include="ECHO set server=%1>> $(NewPostSyncFile)" />
+      <Lines Include="ECHO set appName=$(AppName)>> $(NewPostSyncFile)" />
+      <Lines Include="ECHO set destinationFilePath=$(DestinationFilePath)>> $(NewPostSyncFile)" />
+      <Lines Condition="'@(BatchCommandVariables)'!=''" Include="ECHO set %(BatchCommandVariables.Identity)>> $(NewPostSyncFile)" />
+      <Lines Condition="'$(FileOnlyDeployment)'!='true'" Include="type $(PostSyncFile)>> $(NewPostSyncFile)" />
+
+      <Lines Include="ECHO Starting deployment of %(DeployTypes.DeployCommandFilenameOnly) ..." />
+      <Lines Include="@ECHO ON" />
+      <Lines Condition="'$(FileOnlyDeployment)'!='true'" Include="%22$(MSDeployPath)%22 -verb:sync -source:package=%22%25CD%25\%(DeployTypes.DeployPackageName)%22 -dest:dirpath=%22\\%1\$(DestinationFilePath)%22,computername=%1,username=,password= -preSync:runCommand=%22$(NewPreSyncFile)%22,waitInterval=$(WaitInterval) -postSync:runCommand=%22$(NewPostSyncFile)%22,waitInterval=$(WaitInterval) -verbose %~2 %~3 %~4 %~5 %~6 %~7 %~8 %~9" />
+      <Lines Condition="'$(FileOnlyDeployment)'=='true'" Include="%22$(MSDeployPath)%22 -verb:sync -source:package=%22%25CD%25\%(DeployTypes.DeployPackageName)%22 -dest:dirpath=%22\\%1\$(DestinationFilePath)%22,username=,password= -verbose %~2 %~3 %~4 %~5 %~6 %~7 %~8 %~9" />
+      <Lines Include="@ECHO OFF" />
+      <Lines Include="GOTO End" />
+
+      <Lines Include=":Readme" />
+      <Lines Include="ECHO." />
+      <Lines Include="ECHO Deploys application to target server using MSDeploy" />
+      <Lines Include="ECHO." />
+      <Lines Include="ECHO %(DeployTypes.DeployCommandFilenameOnly) COMPUTERNAME [Other MSBuild parameters (up to 8)]" />
+      <Lines Include="ECHO." />
+      <Lines Include="ECHO   COMPUTERNAME\t\tThe target computer to deploy to." />
+      <Lines Include="ECHO   MSBuild params\t\tYou may optionally add any other MSBuild parameters to the call.  For example:" />
+      <Lines Include="ECHO     -whatif" />
+      <Lines Include="ECHO     -retryAttempts" />
+      <Lines Include="ECHO     -verbose" />
+      <Lines Include="ECHO." />
+      <Lines Include="ECHO You can send the command output to a log file by appending %22 > msdeploy.log%22 to the command. " />
+      <Lines Include="ECHO." />
+      <Lines Include="ECHO %(DeployTypes.DeployCommandFilenameOnly) COMPUTERNAME > msdeploy.log" />
+      <Lines Include="ECHO notepad msdeploy.log" />
+      <Lines Include="ECHO." />
+      <Lines Include="GOTO End" />
+
+      <Lines Include=":End" />
+      <Lines Include=" " />
+    </ItemGroup>
+    <WriteLinesToFile
+      File="%(DeployTypes.DeployCommandFilename)"
+      Lines="@(Lines)"
+      Overwrite="true"
+      />
+  </Target>
+  <Target Name="APP-DeployApplication" Inputs="@(DeployTypes->WithMetadataValue('identity', 'appDeploy'))" Outputs="%(identity).Batching">
+    <Message Importance="high" Text="Deploying application to $(DestinationComputerName)" />
+
+    <Exec Condition="'$(ImportParametersFiles)'!='true'" Command="@(DeployTypes->Metadata('DeployCommandFilenameOnly')) %(DestinationComputerName.Identity)" WorkingDirectory="@(DeployTypes->Metadata('DeployFolder'))" />
+    <Exec Condition="'$(ImportParametersFiles)'=='true'" Command="@(DeployTypes->Metadata('DeployCommandFilenameOnly')) %(DestinationComputerName.Identity) -setParamFile:&quot;$(CurrentSetParameterFile)&quot;" WorkingDirectory="@(DeployTypes->Metadata('DeployFolder'))" />
+  </Target>
+</Project>
