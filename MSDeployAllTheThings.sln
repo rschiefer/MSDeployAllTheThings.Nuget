@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSDeployAllTheThings.Tests.AppDeploySample", "MSDeployAllTheThings.Tests.AppDeploySample\MSDeployAllTheThings.Tests.AppDeploySample.csproj", "{D5C4C7D6-AF29-469D-9144-783717681BED}"
 EndProject
@@ -22,6 +22,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSDeployAllTheThings.SqlDeploy", "MSDeployAllTheThings.SqlDeploy\MSDeployAllTheThings.SqlDeploy.csproj", "{3579A794-A688-417D-9942-A9CCA98C61C4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSDeployAllTheThings.WebDeployPlus", "MSDeployAllTheThings.WebDeployPlus\MSDeployAllTheThings.WebDeployPlus.csproj", "{F14E4AD7-727F-421D-A265-A582793AE3F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_docs", "_docs", "{AFFF8B8F-144B-4FA7-874F-CDAE095E46AB}"
+	ProjectSection(SolutionItems) = preProject
+		..\vso-agent-tasks\Tasks\images\MSDeployAllTheThingsIcon_400.png = ..\vso-agent-tasks\Tasks\images\MSDeployAllTheThingsIcon_400.png
+		readme.md = readme.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
