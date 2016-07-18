@@ -20,4 +20,20 @@ MSDeploy is a commandline utility and framework for handling the deployment of c
 
 The MSDeployAllTheThings Nuget packages make it easier to create MSDeploy packages as part of your build process.  These packages can be deployed just like WebDeploy packages in most cases.
 
-More details to come.
+## Setup
+
+### Step 1 - Choose the right Nuget Package
+
+For any application hosted via ASP.NET (MVC, Webforms, WCF, etc) you should use the WebDeployPlus Nuget package.
+
+For database projects use the SqlDeploy Nuget package.
+
+For almost any other type of application (console, windows service, etc) use the AppDeploy package.  This option basically provides directory copy deployment functionality.  It can be use in many non-standard scenarios.  For example, we have even used AppDeploy for SSIS deployments.
+
+### Step 2 - Enable MSDeploy Packaging
+
+Add the `/p:DeployOnBuild=true` MSBuild flag to enable packaging.  This will engage the MSBuild scripts added by the Nuget package to run MSDeploy.exe and create an MSDeploy deployment package of the component.
+
+### Step 3 - Run Deploy the Package
+
+At this point you can run MSDeploy.exe manually referencing the package (zip) file or you can utilize the generated `*.deploy.cmd` file to deploy the package.  The deploy command will provide help details as the default output.
