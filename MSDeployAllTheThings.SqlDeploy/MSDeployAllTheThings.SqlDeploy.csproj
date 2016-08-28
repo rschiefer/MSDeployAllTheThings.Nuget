@@ -7,8 +7,14 @@
     <None Include="MSDeployAllTheThings.SqlDeploy.nuspec" />
     <None Include="nuget\content\UpdateToProjectName.spp.targets" />
     <None Include="nuget\tools\install.ps1" />
-    <None Include="nuget\tools\SqlPublishingPipeline.targets" />
+    <None Include="nuget\tools\SqlPublishingPipeline.targets">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="nuget\tools\uninstall.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="nuget\content\parameters.xml" />
+    <Content Include="nuget\content\setParameters.Local.xml" />
   </ItemGroup>
   <Import Project="..\_build\BuildNugetPackage.targets" />
 </Project>

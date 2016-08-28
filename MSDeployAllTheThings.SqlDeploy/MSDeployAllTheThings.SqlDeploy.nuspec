@@ -2,13 +2,13 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>MSDeployAllTheThings.SqlDeploy</id>
-    <version>2.2.9</version>
+    <version>2.3</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Deploys sql scripts to target databases MSDeploy</description>
-    <releaseNotes>Added support for Visual Studio 2015 (v14.0) deployment builds.</releaseNotes>
+    <releaseNotes>Fixed PublishingPipelineCore import bug. Simplified parameterization setup and defaulted to using DacPac deployment.</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>deploy automation msdeploy webdeploy sql</tags>
     <dependencies>

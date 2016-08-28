@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<parameters>
+  <parameter name="MyDb-ConnectionString"
+     description="Connection string for MyDb."
+     defaultValue="MyDb-ConnectionPlaceholder">
+    <parameterEntry
+       type="ProviderPath"
+       scope="dbDacFx|dbFullSQL"
+       match="MyDb-ConnectionPlaceholder"/>
+  </parameter>
+</parameters>
