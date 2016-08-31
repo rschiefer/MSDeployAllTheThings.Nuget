@@ -2,7 +2,7 @@
 
 # #MSDeployAlltheThings Nuget Packages
 
-## The purpose of this project is to make deployment of .NET applications and SQL databases easier.  
+## The purpose of this project is to make .NET developers lives better by making deployment of .NET applications and SQL databases trivial.  
 
 This is accomplished using MSDeploy.exe.  MSDeploy provides advanced deployment features which are utilized by WebDeploy.  Most developers know about WebDeploy but don't realize MSDeploy is doing the bulk of the work behind the scenes.
 
