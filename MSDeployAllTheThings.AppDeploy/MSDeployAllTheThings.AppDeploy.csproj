@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ProjectGuid>{BC5904E9-F3EA-429E-8C1B-94348B56112C}</ProjectGuid>
   </PropertyGroup>
-  <Import Project="..\_build\BuildNugetPackage.targets"/>
+  <Import Project="..\_build\BuildNugetPackage.targets" />
   <ItemGroup>
     <None Include="MSDeployAllTheThings.AppDeploy.nuspec" />
     <None Include="nuget\content\deployment\postSync.bat" />
@@ -15,5 +15,9 @@
     <None Include="nuget\tools\install.ps1" />
     <None Include="nuget\tools\uninstall.ps1" />
     <None Include="nuget\readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="nuget\content\parameters.xml" />
+    <Content Include="nuget\content\setParameters.Local.xml" />
   </ItemGroup>
 </Project>

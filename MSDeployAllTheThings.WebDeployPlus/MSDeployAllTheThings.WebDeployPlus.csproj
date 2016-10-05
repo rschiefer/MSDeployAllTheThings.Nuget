@@ -8,7 +8,13 @@
     <None Include="nuget\content\deployment\ignore.me" />
     <None Include="nuget\tools\install.ps1" />
     <None Include="nuget\tools\uninstall.ps1" />
-    <None Include="nuget\tools\WebDeployPlus.targets" />
+    <None Include="nuget\tools\WebDeployPlus.targets">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="nuget\content\parameters.xml" />
+    <Content Include="nuget\content\setParameters.Local.xml" />
   </ItemGroup>
   <Import Project="..\_build\BuildNugetPackage.targets" />
 </Project>
