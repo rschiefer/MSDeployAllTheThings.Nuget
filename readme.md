@@ -37,3 +37,5 @@ Add the `/p:DeployOnBuild=true` MSBuild flag to enable packaging.  This will eng
 ### Step 3 - Run Deploy the Package
 
 At this point you can run MSDeploy.exe manually referencing the package (zip) file or you can utilize the generated `*.deploy.cmd` file to deploy the package.  The deploy command will provide help details as the default output.
+
+More details about each package can be found in our Wiki - https://github.com/rschiefer/MSDeployAllTheThings.Nuget/wiki
