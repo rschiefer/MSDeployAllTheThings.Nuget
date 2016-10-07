@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<parameters>
+  <!--<parameter name="AppSetting-MySetting"
+            description="Specifies your setting."
+            defaultValue="my default value"
+            tags="AppSetting">
+    <parameterEntry
+         kind="XmlFile"
+         scope="\\web\.config"
+         match="//configuration/appSettings/add[@key='MySetting']/@value" />
+  </parameter>-->
+</parameters>
