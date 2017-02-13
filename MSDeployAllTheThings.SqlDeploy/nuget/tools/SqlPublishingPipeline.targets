@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).spp.targets" />
-  <Import Project="$(MSBuildProjectDirectory)\..\packages\**\PublishingPipelineCore.targets" />
+  <Import Project="$(MSBuildProjectDirectory)\..\**\packages\**\PublishingPipelineCore.targets" />
 
 
   <UsingTask

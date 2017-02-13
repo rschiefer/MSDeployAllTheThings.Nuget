@@ -11,7 +11,7 @@
     <ClusterSecondaryNodes Include="$(ClusterSecondaryNodes)" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildProjectDirectory)\..\packages\**\PublishingPipelineCore.targets" />
+  <Import Project="$(MSBuildProjectDirectory)\..\**\packages\**\PublishingPipelineCore.targets" />
 
 
   <Target Name="AddPrePostSyncCommands" Condition="'$(DeployOnBuild)'=='true'" AfterTargets="Package" >

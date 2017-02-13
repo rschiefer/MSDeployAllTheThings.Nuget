@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).app.targets"/>
-  <Import Project="$(MSBuildProjectDirectory)\..\packages\**\PublishingPipelineCore.targets" />
+  <Import Project="$(MSBuildProjectDirectory)\..\**\packages\**\PublishingPipelineCore.targets" />
 
 
   <ItemGroup>
