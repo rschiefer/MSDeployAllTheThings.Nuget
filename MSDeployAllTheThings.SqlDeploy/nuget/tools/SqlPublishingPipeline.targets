@@ -368,7 +368,6 @@ ReferencedDacPacs = output.ToArray();
 				DestinationFolder="%(DeployTypes.DeployFolder)"
 				/>
     <Copy
-			Condition="Exists(@(SetParamFiles))"
 			SourceFiles="@(SetParamFiles)"
 			DestinationFolder="%(DeployTypes.DeployFolder)" />
 
