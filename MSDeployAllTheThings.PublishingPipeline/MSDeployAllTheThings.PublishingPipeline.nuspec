@@ -2,13 +2,13 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>MSDeployAllTheThings.PublishingPipeline</id>
-    <version>1.1.4</version>
+    <version>1.1.5</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Shared components for MSDeploy-based deployment packages.</description>
-    <releaseNotes>Added support for Visual Studio 2015 (v14.0) deployment builds.</releaseNotes>
+    <releaseNotes>Cleaning up all references.</releaseNotes>
     <copyright>Copyright 2016</copyright>
   </metadata>
   <files>
