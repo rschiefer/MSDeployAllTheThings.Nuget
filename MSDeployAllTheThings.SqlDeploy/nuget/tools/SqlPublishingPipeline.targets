@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <Import Project="$(MSBuildProjectDirectory)\$(MSBuildProjectName).spp.targets" />
-  <Import Project="$(MSBuildProjectDirectory)\..\packages\**\PublishingPipelineCore.targets" />
+  <Import Project="$(MSBuildProjectDirectory)\..\**\packages\**\PublishingPipelineCore.targets" />
 
 
   <UsingTask
@@ -368,7 +368,6 @@ ReferencedDacPacs = output.ToArray();
 				DestinationFolder="%(DeployTypes.DeployFolder)"
 				/>
     <Copy
-			Condition="Exists(@(SetParamFiles))"
 			SourceFiles="@(SetParamFiles)"
 			DestinationFolder="%(DeployTypes.DeployFolder)" />
 

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>    
+    <DeployOnBuild>true</DeployOnBuild>
+  </PropertyGroup>
+  <!--Added this to force Package target to run on VS build.  Adding DeployOnBuild=true didn't work alone.-->
+  <Target Name="AfterCoreBuild" AfterTargets="CoreBuild">
+    <CallTarget Targets="Package"  />
+  </Target>
+</Project>

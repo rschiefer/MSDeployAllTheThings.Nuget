@@ -11,7 +11,7 @@
     <ClusterSecondaryNodes Include="$(ClusterSecondaryNodes)" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildProjectDirectory)\..\packages\**\PublishingPipelineCore.targets" />
+  <Import Project="$(MSBuildProjectDirectory)\..\**\packages\**\PublishingPipelineCore.targets" />
 
 
   <Target Name="AddPrePostSyncCommands" Condition="'$(DeployOnBuild)'=='true'" AfterTargets="Package" >
@@ -80,7 +80,7 @@ set _ArgMsDeployAdditionalFlags=%_ArgMsDeployAdditionalFlags% $(PrePostSyncArgum
     <Copy SourceFiles="@(SetParameterFiles)" DestinationFolder="$(_PackageRoot)" />
 
     <Copy Condition="Exists($(CurrentSetParameterFile))" SourceFiles="$(CurrentSetParameterFile)" DestinationFiles="$(_PackageRoot)$(MSBuildProjectName).SetParameters.xml" />
-    <Error Condition="Exists($(ParameterFile)) And !Exists($(CurrentSetParameterFile))" Text="Paramterization file '$(CurrentSetParameterFile)' was not found!  Remove parameters.xml to disable custom parameterization." />
+    <!--<Error Condition="Exists($(ParameterFile)) And !Exists($(CurrentSetParameterFile))" Text="Parameterization file '$(CurrentSetParameterFile)' was not found!  Remove parameters.xml to disable custom parameterization." />-->
   </Target>
 
 

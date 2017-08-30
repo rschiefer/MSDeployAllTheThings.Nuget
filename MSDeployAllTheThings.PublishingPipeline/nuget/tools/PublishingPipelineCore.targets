@@ -27,7 +27,7 @@
 
   <PropertyGroup>
     <AppName Condition=" '$(AppName)'=='' ">$(MSBuildProjectName)</AppName>
-    <DestinationFilePath Condition=" '$(DestinationFilePath)'==''">d$\Program Files\EBSCO\$(AppTypeFolder)\$(AppName)</DestinationFilePath>
+    <DestinationFilePath Condition=" '$(DestinationFilePath)'==''">d$\Program Files\$(AppTypeFolder)\$(AppName)</DestinationFilePath>
     <ParametersFile>$(MSBuildProjectDirectory)\parameters.xml</ParametersFile>
     <ImportParametersFilesOverride Condition="'$(ImportParametersFilesOverride)'==''">false</ImportParametersFilesOverride>
     <ImportParametersFiles>$(ImportParametersFilesOverride)</ImportParametersFiles>
