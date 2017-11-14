@@ -34,7 +34,7 @@
     <CurrentSetParameterFile>$(MSBuildProjectDirectory)\SetParameters.$(Configuration).xml</CurrentSetParameterFile>
     <MSDeployPath Condition="'$(MSDeployPath)'==''">C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe</MSDeployPath>
     <MSBuildTasksAssembly>Microsoft.Build.Tasks.v$(MSBuildToolsVersion).dll</MSBuildTasksAssembly>
-    <MSBuildTasksAssembly Condition="'$(MSBuildToolsVersion)'=='14.0'">Microsoft.Build.Tasks.Core.dll</MSBuildTasksAssembly>
+    <MSBuildTasksAssembly Condition="'$(MSBuildToolsVersion)'>='14.0'">Microsoft.Build.Tasks.Core.dll</MSBuildTasksAssembly>
   </PropertyGroup>
 
 
