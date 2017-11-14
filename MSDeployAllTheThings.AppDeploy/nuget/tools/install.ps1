@@ -32,6 +32,8 @@ if ($ExistingImports) {
             $MSBProject.Xml.RemoveChild($_) | Out-Null
         }
 }
-$MSBProject.Xml.AddImport($RelativePath) | Out-Null
+
+$import = $MSBProject.Xml.AddImport($RelativePath)
+$import.Condition = '''$(DeployOnBuild)''==''true'''
 $project.Save()
 

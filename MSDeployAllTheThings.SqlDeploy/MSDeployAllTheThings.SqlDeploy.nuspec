@@ -4,13 +4,13 @@
     <id>MSDeployAllTheThings.SqlDeploy</id>
     <title>MSDeployAllTheThings.SqlDeploy</title>
     <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
-    <version>2.3.6</version>
+    <version>2.3.7</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Deploys sql scripts to target databases MSDeploy</description>
-    <releaseNotes>Updated path to latest PublishingPipelineCore.</releaseNotes>
+    <releaseNotes>Fixed initial build failures when Nuget restore hasn't run.</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>deploy automation msdeploy webdeploy sql</tags>
     <dependencies>
