@@ -3,14 +3,14 @@
   <metadata>
     <id>MSDeployAllTheThings.PublishingPipeline</id>
     <title>MSDeployAllTheThings.PublishingPipeline</title>
-    <iconUrl>https://camo.githubusercontent.com/1d14c212bc692af31e9d2abf073db7d17264e5ca/68747470733a2f2f7273636869656665722e67616c6c6572792e76736173736574732e696f2f5f617069732f7075626c69632f67616c6c6572792f7075626c69736865722f7273636869656665722f657874656e73696f6e2f4d534465706c6f79416c6c5468655468696e67732f302e302e332f617373657462796e616d652f4d6963726f736f66742e56697375616c53747564696f2e53657276696365732e49636f6e732e44656661756c74</iconUrl>
-    <version>1.1.6</version>
+    <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
+    <version>1.1.7</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Shared components for MSDeploy-based deployment packages.</description>
-    <releaseNotes>Updated Microsoft.Web.Publishing.Tasks path to support VS2017 and later.</releaseNotes>
+    <releaseNotes>Updated to support VS2017 and later.</releaseNotes>
     <copyright>Copyright 2017</copyright>
     <tags>deploy automation msdeploy webdeploy sql</tags>
   </metadata>
