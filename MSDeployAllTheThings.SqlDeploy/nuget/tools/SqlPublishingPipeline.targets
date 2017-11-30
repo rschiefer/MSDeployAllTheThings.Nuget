@@ -129,7 +129,7 @@ ReferencedDacPacs = output.ToArray();
     <Message Text="MSBuildProjectDirectory=$(MSBuildProjectDirectory)" />
     <PropertyGroup>
       <DatabaseProjectExtension>dbproj</DatabaseProjectExtension>
-      <DatabaseProjectExtension Condition="'$(VisualStudioVersion)'=='11.0' Or '$(VisualStudioVersion)'=='12.0' Or '$(VisualStudioVersion)'=='14.0'">sqlproj</DatabaseProjectExtension>
+      <DatabaseProjectExtension Condition="'$(MSBuildToolsVersion)'>='14.0'">sqlproj</DatabaseProjectExtension>
       <DbProjectScriptFilename>@(DbDeployments->Metadata('DatabaseProject'))_sqlDeployGenerated.sql</DbProjectScriptFilename>
       <SourceProject>$(ProjectDir)..\@(DbDeployments->Metadata('DatabaseProject'))\@(DbDeployments->Metadata('DatabaseProject')).$(DatabaseProjectExtension)</SourceProject>
       <TargetDatabase>$(%(DbDeployments.Identity)-Connection.Replace(';','%3b'))</TargetDatabase>
@@ -243,7 +243,7 @@ ReferencedDacPacs = output.ToArray();
       <DbProjectTargets Condition="$(ScriptsMetadata.Contains('.dacpac'))">ReBuild</DbProjectTargets>
     </PropertyGroup>
     <MSBuild
-			Condition="'$(VisualStudioVersion)'=='11.0' Or '$(VisualStudioVersion)'=='12.0' Or '$(VisualStudioVersion)'=='14.0'"
+			Condition="'$(MSBuildToolsVersion)'>='14.0'"
 			Projects="$(SourceProject)"
 			Properties="UpdateDatabase=False;PublishScriptFileName=$(DbProjectScriptFilename);SqlPublishProfilePath=$(SqlPublishProfile);VisualStudioVersion=$(VisualStudioVersion);ScriptDatabaseOptions=$(ScriptDatabaseOptionsOverride)"
 			Targets="$(DbProjectTargets)"  >
