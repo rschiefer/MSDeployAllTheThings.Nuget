@@ -4,13 +4,13 @@
     <id>MSDeployAllTheThings.PublishingPipeline</id>
     <title>MSDeployAllTheThings.PublishingPipeline</title>
     <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
-    <version>1.1.7</version>
+    <version>1.1.8</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Shared components for MSDeploy-based deployment packages.</description>
-    <releaseNotes>Updated to support VS2017 and later.</releaseNotes>
+    <releaseNotes>Changed to default to import parameter file.</releaseNotes>
     <copyright>Copyright 2017</copyright>
     <tags>deploy automation msdeploy webdeploy sql</tags>
   </metadata>

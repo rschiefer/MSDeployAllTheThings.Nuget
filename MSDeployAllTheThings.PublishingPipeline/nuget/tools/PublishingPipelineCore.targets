@@ -29,7 +29,7 @@
     <AppName Condition=" '$(AppName)'=='' ">$(MSBuildProjectName)</AppName>
     <DestinationFilePath Condition=" '$(DestinationFilePath)'==''">d$\Program Files\$(AppTypeFolder)\$(AppName)</DestinationFilePath>
     <ParametersFile>$(MSBuildProjectDirectory)\parameters.xml</ParametersFile>
-    <ImportParametersFilesOverride Condition="'$(ImportParametersFilesOverride)'==''">false</ImportParametersFilesOverride>
+    <ImportParametersFilesOverride Condition="'$(ImportParametersFilesOverride)'==''">true</ImportParametersFilesOverride>
     <ImportParametersFiles>$(ImportParametersFilesOverride)</ImportParametersFiles>
     <CurrentSetParameterFile>$(MSBuildProjectDirectory)\SetParameters.$(Configuration).xml</CurrentSetParameterFile>
     <MSDeployPath Condition="'$(MSDeployPath)'==''">C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe</MSDeployPath>
