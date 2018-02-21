@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>MSDeployAllTheThings.WebDeployPlus</id>
-    <version>1.1.10</version>
+    <version>1.1.11</version>
     <title>MSDeployAllTheThings.WebDeployPlus</title>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
@@ -10,11 +10,11 @@
     <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Adds clustered deployment to WebDeploy.</description>
-    <releaseNotes>Fixed initial build failures when Nuget restore hasn't run.</releaseNotes>
+    <releaseNotes>Fixed to reference latest publishing pipeline dependency.</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>deploy automation msdeploy webdeploy web</tags>
     <dependencies>
-      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1.5" />
+      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1" />
     </dependencies>
   </metadata>
   <files>

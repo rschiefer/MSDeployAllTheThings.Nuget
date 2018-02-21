@@ -4,17 +4,17 @@
     <id>MSDeployAllTheThings.SqlDeploy</id>
     <title>MSDeployAllTheThings.SqlDeploy</title>
     <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
-    <version>2.3.9</version>
+    <version>2.3.10</version>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
     <licenseUrl>https://raw.githubusercontent.com/rschiefer/MSDeployAllTheThings.Nuget/_build/license.txt</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Deploys sql scripts to target databases MSDeploy</description>
-    <releaseNotes>Add support for VS2017.</releaseNotes>
+    <releaseNotes>Fixed to reference latest publishing pipeline dependency.</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>deploy automation msdeploy webdeploy sql</tags>
     <dependencies>
-      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1.5" />
+      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1" />
     </dependencies>
   </metadata>
   <files>

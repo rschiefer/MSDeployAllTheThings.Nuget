@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>MSDeployAllTheThings.AppDeploy</id>
-    <version>1.2.9</version>
+    <version>1.2.11</version>
     <title>MSDeployAllTheThings.AppDeploy</title>
     <authors>Robert Schiefer Jr.</authors>
     <owners>Robert Schiefer Jr.</owners>
@@ -11,11 +11,11 @@
     <iconUrl>http://bit.ly/MSDeployAllTheThingsIcon</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Deploys application to target server using MSDeploy</description>
-    <releaseNotes>Fixed initial build failures when Nuget restore hasn't run.</releaseNotes>
+    <releaseNotes>Fixed to reference latest publishing pipeline dependency.</releaseNotes>
     <copyright>Copyright 2016</copyright>
     <tags>deploy automation msdeploy webdeploy application windows_service scheduled_task</tags>
     <dependencies>
-      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1.5" />
+      <dependency id="MSDeployAllTheThings.PublishingPipeline" version="1.1" />
     </dependencies>
   </metadata>
   <files>
